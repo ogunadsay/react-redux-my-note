@@ -1,8 +1,12 @@
-#Build
-FROM microsoft/dotnet:2.1-sdk AS build-env
-COPY MyNote /app
+FROM microsoft/dotnet:2.1-aspnetcore-runtime AS base
 WORKDIR /app
-RUN ["dotnet", "restore"]
+EXPOSE 56484
+EXPOSE 44329
+
+FROM microsoft/dotnet:2.1-sdk AS build
+WORKDIR /src
+COPY MyNote/MyNote.csproj MyNote/
+RUN dotnet restore MyNote/MyNote.csproj
 RUN set -ex; \
 	if ! command -v gpg > /dev/null; then \
 		apt-get update; \
@@ -12,14 +16,14 @@ RUN set -ex; \
 		; \
 		rm -rf /var/lib/apt/lists/*; \
 	fi && curl -sL https://deb.nodesource.com/setup_8.x | bash - && apt-get update && apt-get install -y build-essential nodejs
+COPY . .
+WORKDIR /src/MyNote
+RUN dotnet build MyNote.csproj -c Release -o /app
 
-# copy everything else and build
-COPY . ./
-RUN dotnet publish -c Release -o out MyNote.sln
+FROM build AS publish
+RUN dotnet publish MyNote.csproj -c Release -o /app
 
-##Runtime 
-#FROM microsoft/aspnetcore:2.0.0
-#
-#WORKDIR /app
-#COPY --from=build-env /app/MyNote.Web/out ./
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app .
 ENTRYPOINT ["dotnet", "MyNote.dll"]
