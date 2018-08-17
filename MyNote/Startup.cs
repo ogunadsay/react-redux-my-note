@@ -28,6 +28,7 @@ namespace MyNote
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
             services.AddDbContext<MyNote.Models.myNoteContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("MyNoteContext")));
         }
